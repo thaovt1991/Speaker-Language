@@ -1,0 +1,189 @@
+<div class="page">
+  <header class="hero">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">◎</span>
+      <div>
+        <p class="eyebrow">Quản lý âm thanh</p>
+        <h1>Nhận dạng tiếng nói</h1>
+      </div>
+    </div>
+    <p class="lede">
+      Nói vào micro, ứng dụng chuyển thành văn bản ngay trên trình duyệt. Chưa cần backend.
+    </p>
+  </header>
+
+  @if (!speech.isSupported()) {
+    <section class="panel warning" role="alert">
+      <h2>Trình duyệt chưa hỗ trợ</h2>
+      <p>
+        Web Speech API hoạt động tốt nhất trên Chrome hoặc Edge. Safari/Firefox có thể không nhận
+        micro hoặc không có nhận dạng tiếng nói.
+      </p>
+    </section>
+  }
+
+  <section class="stage">
+    <div class="mic-column">
+      <button
+        type="button"
+        class="mic-button"
+        [class.listening]="speech.isListening()"
+        [disabled]="!speech.isSupported()"
+        (click)="speech.toggle()"
+        [attr.aria-pressed]="speech.isListening()"
+      >
+        <span class="mic-rings" aria-hidden="true"></span>
+        <span class="mic-icon" aria-hidden="true">
+          @if (speech.isListening()) {
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <rect x="7" y="7" width="10" height="10" rx="2" />
+            </svg>
+          } @else {
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <rect x="9" y="3" width="6" height="11" rx="3" />
+              <path d="M6 11a6 6 0 0 0 12 0" />
+              <path d="M12 17v4" />
+              <path d="M8 21h8" />
+            </svg>
+          }
+        </span>
+      </button>
+
+      <p class="status">
+        @if (speech.isListening()) {
+          <span class="live-dot"></span>
+          Đang nghe — hãy nói rõ, gần micro
+        } @else {
+          Nhấn micro để bắt đầu
+        }
+      </p>
+
+      <div class="field">
+        <span>Ngôn ngữ</span>
+        <div class="lang-chips" role="group" aria-label="Ngôn ngữ nhanh">
+          @for (lang of speech.quickLanguages; track lang.code) {
+            <button
+              type="button"
+              class="chip"
+              [class.active]="speech.language() === lang.code"
+              (click)="speech.setLanguage(lang.code)"
+            >
+              {{ lang.shortLabel }}
+            </button>
+          }
+        </div>
+        <select [value]="speech.language()" (change)="onLanguageChange($event)">
+          @for (lang of speech.languages; track lang.code) {
+            <option [value]="lang.code">{{ lang.label }}</option>
+          }
+        </select>
+      </div>
+
+      @if (speech.isJapanese()) {
+        <p class="lang-hint">Đang nhận dạng tiếng Nhật (ja-JP). Nói rõ, gần micro.</p>
+      }
+    </div>
+
+    <article class="panel transcript">
+      <div class="panel-head">
+        <div>
+          <h2>Bản ghi</h2>
+          <p>
+            @if (speech.isJapanese()) {
+              Văn bản tiếng Nhật (kanji / kana) + phần đang nhận dạng.
+            } @else {
+              Văn bản chính thức + phần đang nhận dạng (màu nhạt).
+            }
+          </p>
+        </div>
+        <div class="meta">
+          <span>Độ tin cậy: {{ confidencePercent() }}</span>
+          <span>{{ speech.languageLabel() }}</span>
+        </div>
+      </div>
+
+      <div
+        class="transcript-body"
+        [class.empty]="!speech.hasTranscript()"
+        [attr.lang]="speech.language()"
+      >
+        @if (!speech.hasTranscript()) {
+          <p class="placeholder">
+            @if (speech.isJapanese()) {
+              ここに日本語の文字起こしが表示されます…
+            } @else {
+              Bản ghi sẽ hiện ở đây khi bạn nói…
+            }
+          </p>
+        } @else {
+          <p>
+            {{ speech.finalText() }}
+            @if (speech.interimText()) {
+              <em>{{ speech.interimText() }}</em>
+            }
+          </p>
+        }
+      </div>
+
+      @if (speech.errorMessage()) {
+        <p class="error" role="alert">{{ speech.errorMessage() }}</p>
+      }
+
+      <div class="actions">
+        @for (mark of speech.punctuations(); track mark) {
+          <button type="button" class="ghost" (click)="speech.appendPunctuation(mark)">
+            {{ mark }}
+          </button>
+        }
+        <span class="spacer"></span>
+        <button type="button" class="ghost" [disabled]="!speech.finalText().trim()" (click)="speech.copyTranscript()">
+          {{ speech.copied() ? 'Đã copy' : 'Copy' }}
+        </button>
+        <button type="button" class="ghost" [disabled]="!speech.finalText().trim()" (click)="speech.downloadTranscript()">
+          Tải .txt
+        </button>
+        <button type="button" class="ghost" [disabled]="!speech.finalText().trim()" (click)="speech.saveToHistory()">
+          Lưu lịch sử
+        </button>
+        <button type="button" class="danger" (click)="speech.clearTranscript()">Xóa</button>
+      </div>
+    </article>
+  </section>
+
+  <section class="panel history">
+    <div class="panel-head">
+      <div>
+        <h2>Lịch sử trên máy</h2>
+        <p>Lưu trong trình duyệt (localStorage), không gửi lên server của bạn.</p>
+      </div>
+      <button type="button" class="ghost" [disabled]="speech.history().length === 0" (click)="speech.clearHistory()">
+        Xóa hết
+      </button>
+    </div>
+
+    @if (speech.history().length === 0) {
+      <p class="placeholder">Chưa có bản ghi nào được lưu.</p>
+    } @else {
+      <ul>
+        @for (item of speech.history(); track item.id) {
+          <li>
+            <button type="button" class="history-text" (click)="speech.restoreHistoryItem(item.id)">
+              <strong>{{ item.createdAt | date: 'HH:mm dd/MM/yyyy' }}</strong>
+              <span>{{ item.text }}</span>
+            </button>
+            <button type="button" class="icon-btn" (click)="speech.removeHistoryItem(item.id)" aria-label="Xóa bản ghi">
+              ✕
+            </button>
+          </li>
+        }
+      </ul>
+    }
+  </section>
+
+  <footer class="hints">
+    <p>
+      Chrome/Edge nhận dạng qua Web Speech API (cần HTTPS hoặc localhost, và thường cần mạng).
+      Tiếng Nhật dùng mã <code>ja-JP</code>. Micro chỉ được bật khi bạn nhấn nút.
+    </p>
+  </footer>
+</div>

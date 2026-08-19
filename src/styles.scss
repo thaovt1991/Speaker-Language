@@ -1,0 +1,25 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  min-height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: 'Be Vietnam Pro', 'Segoe UI', sans-serif;
+  color: #eef6ff;
+  background:
+    radial-gradient(circle at top left, rgb(46 107 255 / 28%), transparent 32%),
+    radial-gradient(circle at top right, rgb(46 212 179 / 18%), transparent 28%),
+    #061018;
+}
+
+button,
+select {
+  font: inherit;
+}
